@@ -2,8 +2,9 @@
 #include "Game.h"
 
 Game::Game( const Window& window ) 
-	:BaseGame{ window }
+	:BaseGame{ window },  m_Camera{ window.width, window.height }
 {
+	m_Camera.SetLevelBoundaries(m_Level.GetBoundaries());
 	Initialize();
 }
 
@@ -38,6 +39,14 @@ void Game::Update( float elapsedSec )
 void Game::Draw( ) const
 {
 	ClearBackground( );
+	Point2f cameraTransformation{};
+	float scale{ 2.f };
+
+	glPushMatrix();
+	m_Camera.Transform(m_Avatar.GetShape(), scale, cameraTransformation);
+	m_Level.DrawBackground(cameraTransformation);
+	m_Level.DrawForeground();
+	glPopMatrix();
 }
 
 void Game::ProcessKeyDownEvent( const SDL_KeyboardEvent & e )

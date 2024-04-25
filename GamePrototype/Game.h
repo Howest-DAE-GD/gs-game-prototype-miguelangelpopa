@@ -1,5 +1,9 @@
 #pragma once
 #include "BaseGame.h"
+#include "Level.h"
+#include "Vector2f.h"
+#include "Camera.h"
+
 class Game : public BaseGame
 {
 public:
@@ -22,7 +26,9 @@ public:
 	void ProcessMouseUpEvent( const SDL_MouseButtonEvent& e ) override;
 
 private:
-
+	//Data members
+	Camera m_Camera;
+	Level m_Level;
 	// FUNCTIONS
 	void Initialize();
 	void Cleanup( );
