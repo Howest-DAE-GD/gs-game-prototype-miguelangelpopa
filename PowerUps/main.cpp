@@ -11,7 +11,7 @@ int main( int argc, char *argv[] )
 
 	StartHeapControl();
 
-	Core* pCore{ new Core{ Window{ "GS - Popa, Miguel Angel - 1DAE28", 846.f , 500.f } } };
+	Core* pCore{ new Core{ Window{ "The Lord of The Vaccines - Popa, Miguel Angel - 1DAE28", 846.f , 500.f } } };
 	pCore->Run();
 	delete pCore;
 

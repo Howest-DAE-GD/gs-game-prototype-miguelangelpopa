@@ -37,7 +37,7 @@ private:
     const Window m_Window;
 
     Point2f m_MousePos;
-    static const int m_InitialNrPowerUps{ 10 }; 
+    static const int m_InitialNrPowerUps{ 10 };
     std::vector<PowerUp*> m_pPowerUps;
     std::vector<Point2f> m_PowerUpsCenters;
     std::vector<PowerUp::Type> m_PowerUpTypes;
@@ -47,25 +47,27 @@ private:
     Rectf m_Destroyer;
     SoundEffect* m_KillMusic;
     int m_CurrentLevel;
+    int m_MaxLevel;
     int m_Mistakes;
-  
 
-    GameState m_GameState; 
+    GameState m_GameState;
 
     // Textures
     Texture* m_pTextureStart;
     Texture* m_pTextureFight;
     Texture* m_pTextureEnd;
+    Texture* m_pTextTexture{ nullptr };
+    Texture* m_pEndTextTexture{ nullptr };
 
     // Timer
     float m_LevelTimer;
-    const float m_MaxLevelTime = 20.0f;
+    const float m_DefaultMaxLevelTime = 20.0f;
+    float m_MaxLevelTime;
 
     // Font and text
     Color4f m_TextColor{ 1.0f, 1.0f, 1.0f, 1.0f };
     TTF_Font* m_pFont{ TTF_OpenFont("Resources/Fonts/Speedy.ttf", 32) };
-    Texture* m_pTextTexture{ new Texture("Level: " + std::to_string(m_CurrentLevel) + "                     Time: " + std::to_string(m_LevelTimer) + "             Mistakes: " + std::to_string(m_Mistakes) , m_pFont, m_TextColor) };
-    
+
     // FUNCTIONS
     void Initialize();
     void Cleanup();
@@ -73,7 +75,7 @@ private:
 
     void ShowTestMessage() const;
     void ShowNrPowerUps() const;
-    void CreatePowerUps(int number = m_InitialNrPowerUps); 
+    void CreatePowerUps(int number = m_InitialNrPowerUps);
     void UpdatePowerUps(float elapsedSec);
     void DrawPowerUps() const;
     void DeletePowerUps();
@@ -85,5 +87,4 @@ private:
     void LevelUp();
     void DeleteGreenPowerUps();
     void RegenerateGreenPowerUps();
-   
 };

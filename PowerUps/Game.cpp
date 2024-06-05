@@ -15,21 +15,22 @@ Game::Game(const Window& window)
     , m_ActNrPowerUps{ 0 }
     , m_Destroyer{ 0.0f, 0.0f, 20.0f, 20.0f }
     , m_CurrentLevel{ 1 }
+    , m_MaxLevel{ 1 }
     , m_Mistakes{ 0 }
     , m_GameState{ GameState::Start }
     , m_pTextureStart{ new Texture{ "Resources/Images/Begin.png" } }
     , m_pTextureFight{ new Texture{ "Resources/Images/fight.png" } }
     , m_pTextureEnd{ new Texture{ "Resources/Images/lost.png" } }
+    , m_MaxLevelTime{ m_DefaultMaxLevelTime }
     , m_LevelTimer{ m_MaxLevelTime }
+    , m_KillMusic{ nullptr }
 {
     Initialize();
-    
 }
 
 Game::~Game()
 {
     Cleanup();
-    
 }
 
 void Game::Initialize()
@@ -53,6 +54,10 @@ void Game::Cleanup()
     m_pTextureEnd = nullptr;
     delete m_pTextTexture;
     m_pTextTexture = nullptr;
+    delete m_pEndTextTexture;
+    m_pEndTextTexture = nullptr;
+    delete m_KillMusic;
+    m_KillMusic = nullptr;
 }
 
 void Game::Update(float elapsedSec)
@@ -67,8 +72,8 @@ void Game::Update(float elapsedSec)
         m_LevelTimer -= elapsedSec;
         std::cout << "Time left: " << static_cast<int>(m_LevelTimer) << " seconds" << std::endl;
         delete m_pTextTexture;
-       
-        m_pTextTexture = new Texture("Level: " + std::to_string(m_CurrentLevel) + "           Time: " + std::to_string(static_cast<int>(m_LevelTimer)) + "         Mistakes: " + std::to_string(m_Mistakes)+"/10", m_pFont, m_TextColor);
+
+        m_pTextTexture = new Texture("Level: " + std::to_string(m_CurrentLevel) + "           Time: " + std::to_string(static_cast<int>(m_LevelTimer)) + "         Mistakes: " + std::to_string(m_Mistakes) + "/10", m_pFont, m_TextColor);
         if (m_LevelTimer <= 0.0f)
         {
             std::cout << "Time's up! Game Over." << std::endl;
@@ -104,6 +109,20 @@ void Game::Update(float elapsedSec)
 
     case GameState::Restart:
         std::cout << "Press any key to restart the game..." << std::endl;
+
+        if (!m_pEndTextTexture)
+        {
+            std::string endText = "You reached level " + std::to_string(m_CurrentLevel);
+            if (m_CurrentLevel >= m_MaxLevel)
+            {
+                endText += " (Max level)";
+            }
+            else
+            {
+                endText += ". Max level: " + std::to_string(m_MaxLevel);
+            }
+            m_pEndTextTexture = new Texture(endText, m_pFont, m_TextColor);
+        }
         break;
     }
 }
@@ -120,25 +139,30 @@ void Game::Draw() const
         if (m_pTextureStart)
         {
             m_pTextureStart->Draw(Point2f(0, 0), Rectf(0.f, 0.f, static_cast<float>(m_pTextureStart->GetWidth()), static_cast<float>(m_pTextureStart->GetHeight())));
-          
         }
-       
         break;
 
     case GameState::Playing:
         if (m_pTextureFight)
         {
             m_pTextureFight->Draw(Point2f(0, 0), Rectf(0.f, 0.f, static_cast<float>(m_pTextureFight->GetWidth()), static_cast<float>(m_pTextureFight->GetHeight())));
-            m_pTextTexture->Draw(Point2f(0,m_Window.height-m_pTextTexture->GetHeight()));
         }
         DrawPowerUps();
         DrawDestroyer();
+        if (m_pTextTexture)
+        {
+            m_pTextTexture->Draw(Point2f(0, m_Window.height - m_pTextTexture->GetHeight()));
+        }
         break;
 
     case GameState::Restart:
         if (m_pTextureEnd)
         {
             m_pTextureEnd->Draw(Point2f(0, 0), Rectf(0.f, 0.f, static_cast<float>(m_pTextureEnd->GetWidth()), static_cast<float>(m_pTextureEnd->GetHeight())));
+        }
+        if (m_pEndTextTexture)
+        {
+            m_pEndTextTexture->Draw(Point2f((m_Window.width - m_pEndTextTexture->GetWidth()) / 2, m_Window.height / 3));
         }
         break;
     }
@@ -149,7 +173,7 @@ void Game::ProcessKeyDownEvent(const SDL_KeyboardEvent& e)
     if (m_GameState == GameState::Start)
     {
         m_GameState = GameState::Playing;
-        m_LevelTimer = m_MaxLevelTime; // Resetear el temporizador al inicio del juego
+        m_LevelTimer = m_MaxLevelTime;
     }
     else if (m_GameState == GameState::Restart)
     {
@@ -208,7 +232,11 @@ void Game::CreatePowerUps(int number)
 
     for (int idx{ 0 }; idx < number; ++idx)
     {
-        Point2f center{ float(rand() % (maxX - min + 1) + min), float(rand() % (maxY - min + 1) + min) };
+        Point2f center;
+        do {
+            center = Point2f{ float(rand() % (maxX - min + 1) + min), float(rand() % (maxY - min + 1) + min) };
+        } while (utils::Distance(center, m_MousePos) < m_PowerUpRadius * 2);
+
         PowerUp::Type type = (idx % 2 == 0) ? PowerUp::Type::green : PowerUp::Type::brown;
         m_PowerUpsCenters.push_back(center);
         m_PowerUpTypes.push_back(type);
@@ -289,8 +317,13 @@ void Game::VerifyOverlapping()
     }
     if (powerUpDeleted)
     {
-        //ShowNrPowerUps();
+        m_KillMusic = new SoundEffect("Resources/Coin.mp3");
+        m_KillMusic->SetVolume(10);
+        m_KillMusic->Play(0);
+        
     }
+    /*delete m_KillMusic;
+    m_KillMusic = nullptr;*/
 }
 
 void Game::DrawDestroyer() const
@@ -302,12 +335,20 @@ void Game::DrawDestroyer() const
 void Game::Reset()
 {
     std::cout << "Resetting game due to too many mistakes." << std::endl;
+    if (m_CurrentLevel > m_MaxLevel)
+    {
+        m_MaxLevel = m_CurrentLevel;
+    }
     m_CurrentLevel = 1;
     m_Mistakes = 0;
-    m_LevelTimer = m_MaxLevelTime; // Resetear el temporizador
+    m_MaxLevelTime = m_DefaultMaxLevelTime;
+    m_LevelTimer = m_MaxLevelTime;
     DeletePowerUps();
     CreatePowerUps(m_InitialNrPowerUps);
     m_GameState = GameState::Start;
+
+    delete m_pEndTextTexture;
+    m_pEndTextTexture = nullptr;
 }
 
 void Game::DeleteGreenPowerUps()
@@ -323,7 +364,6 @@ void Game::DeleteGreenPowerUps()
             indicesToRemove.push_back(idx);
         }
     }
-
 
     for (auto it = indicesToRemove.rbegin(); it != indicesToRemove.rend(); ++it)
     {
@@ -345,7 +385,11 @@ void Game::RegenerateGreenPowerUps()
 
     for (int idx{ 0 }; idx < greenCount; ++idx)
     {
-        Point2f center{ float(rand() % (maxX - min + 1) + min), float(rand() % (maxY - min + 1) + min) };
+        Point2f center;
+        do {
+            center = Point2f{ float(rand() % (maxX - min + 1) + min), float(rand() % (maxY - min + 1) + min) };
+        } while (utils::Distance(center, m_MousePos) < m_PowerUpRadius * 2);
+
         PowerUp::Type type = PowerUp::Type::green;
         m_PowerUpsCenters.push_back(center);
         m_PowerUpTypes.push_back(type);
@@ -359,11 +403,24 @@ void Game::LevelUp()
 {
     ++m_CurrentLevel;
     std::cout << "Level up! Current level: " << m_CurrentLevel << std::endl;
-    m_LevelTimer = m_MaxLevelTime; // Resetear el temporizador al subir de nivel
 
+    if (m_CurrentLevel >= 8)
+    {
+        m_MaxLevelTime = 30.0f;
+    }
+
+    if (m_CurrentLevel >= 14)
+    {
+        m_MaxLevelTime = 50.0f;
+    }
+
+    if (m_CurrentLevel >= 20)
+    {
+        m_MaxLevelTime = 70.0f;
+    }
+    m_LevelTimer = m_MaxLevelTime;
 
     DeleteGreenPowerUps();
-
 
     int additionalBrowns = m_CurrentLevel;
     int min{ int(m_PowerUpRadius) };
@@ -381,7 +438,5 @@ void Game::LevelUp()
         ++m_ActNrPowerUps;
     }
 
-
     RegenerateGreenPowerUps();
 }
-

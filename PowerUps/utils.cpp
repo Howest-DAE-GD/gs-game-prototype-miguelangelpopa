@@ -659,5 +659,10 @@ bool utils::IntersectRectLine(const Rectf& r, const Point2f& p1, const Point2f& 
 	intersectMax = tMax;
 	return true;
 }
-
+float utils::Distance(const Point2f& point1, const Point2f& point2)
+{
+	float dx = point1.x - point2.x;
+	float dy = point1.y - point2.y;
+	return std::sqrt(dx * dx + dy * dy);
+}
 #pragma endregion CollisionFunctionality
